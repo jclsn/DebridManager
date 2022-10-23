@@ -44,10 +44,10 @@
          {% for row in newlist %}
             <tr>
                <td>{{ row["Timestamp"]}}</td>
-               <td>{{ row["rdstatus"]}}</td>
-               <td>{{row['rdprogressdownload']}}% </td>
+               <td>{{ row["debrid_status"]}}</td>
+               <td>{{row['debrid_dl_progress']}}% </td>
                <td>{{row['attemptstogetlink']}}</td>
-               <td>{{row['rderror']}}</td>
+               <td>{{row['debrid_error']}}</td>
                <td>{{row['completed']}}</td>
             </tr>
          {% endfor %}

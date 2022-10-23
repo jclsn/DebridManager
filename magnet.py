@@ -8,7 +8,7 @@ databaseinfo = os.getenv("dbinfo")
 connection = sqlite3.connect(databaseinfo, timeout=20)
 cursor = connection.cursor()
 cursor.execute(
-    "CREATE TABLE IF NOT EXISTS tasks (id TEXT, filename TEXT, rdstatus TEXT, rdprogressdownload INTEGER, attemptstogetlink INTEGER, rderror TEXT , completed TEXT , Timestamp DATETIME DEFAULT CURRENT_TIMESTAMP )"
+    "CREATE TABLE IF NOT EXISTS tasks (id TEXT, filename TEXT, debrid_status TEXT, debrid_dl_progress INTEGER, attemptstogetlink INTEGER, debrid_error TEXT , completed TEXT , Timestamp DATETIME DEFAULT CURRENT_TIMESTAMP )"
 )
 
 cursor.execute("SELECT * FROM settings where id=1")
@@ -17,7 +17,7 @@ waitbetween = result[0][1]
 maxattempts = result[0][2]
 aria2host = result[0][3]
 secretkey = result[0][4]
-rdapikey = result[0][5]
+realdebrid_apikey = result[0][5]
 
 
 def moveprocessed(pathname, error):
@@ -34,21 +34,21 @@ def moveprocessed(pathname, error):
 def realdebridtorrent(magnet):
     global completed
     addmagneturl = (
-        "https://api.real-debrid.com/rest/1.0/torrents/addMagnet?auth_token=" + rdapikey
+        "https://api.real-debrid.com/rest/1.0/torrents/addMagnet?auth_token=" + realdebrid_apikey
     )
     magnetaddjson = {"magnet": magnet}
     response = requests.post(addmagneturl, data=magnetaddjson)
-    responsefromrd = response.json()
-    myid = responsefromrd["id"]
+    debrid_response = response.json()
+    myid = debrid_response["id"]
     head, tail = os.path.split(magnet)
     filename = tail
-    rdstatus = "Submitted to RD"
+    debrid_status = "Submitted to RD"
     attemptstogetlink = 0
-    rderror = " "
+    debrid_error = " "
     completedtask = "No"
     cursor.execute(
-        """INSERT INTO tasks(id, filename, rdstatus, attemptstogetlink, rderror,completed) VALUES (?,?,?,?,?,?)""",
-        (myid, filename, rdstatus, attemptstogetlink, rderror, completedtask),
+        """INSERT INTO tasks(id, filename, debrid_status, attemptstogetlink, debrid_error,completed) VALUES (?,?,?,?,?,?)""",
+        (myid, filename, debrid_status, attemptstogetlink, debrid_error, completedtask),
     )
     connection.commit()
     time.sleep(2)
@@ -56,7 +56,7 @@ def realdebridtorrent(magnet):
         "https://api.real-debrid.com/rest/1.0/torrents/selectFiles/"
         + myid
         + "?auth_token="
-        + rdapikey
+        + realdebrid_apikey
     )
     allfiles = {"files": "all"}
     response = requests.post(selectfiles, data=allfiles)
@@ -65,11 +65,11 @@ def realdebridtorrent(magnet):
         "https://api.real-debrid.com/rest/1.0/torrents/info/"
         + myid
         + "?auth_token="
-        + rdapikey
+        + realdebrid_apikey
     )
     response = requests.get(selecttorrentinfo)
-    responsefromrd = response.json()
-    status = responsefromrd["status"]
+    debrid_response = response.json()
+    status = debrid_response["status"]
 
     match status:
         case "downloaded":
@@ -77,16 +77,16 @@ def realdebridtorrent(magnet):
         case "queued":
             completed = 0
         case "magnet_error":
-            rdstatus = "Magnet Error"
+            debrid_status = "Magnet Error"
             cursor.execute(
-                """INSERT INTO tasks(id, filename, rdstatus, rdprogressdownload, attemptstogetlink, rderror,completed) VALUES (?,?,?,?,?,?,?)""",
+                """INSERT INTO tasks(id, filename, debrid_status, debrid_dl_progress, attemptstogetlink, debrid_error,completed) VALUES (?,?,?,?,?,?,?)""",
                 (
                     myid,
                     filename,
-                    rdstatus,
-                    rdprogressdownload,
+                    debrid_status,
+                    debrid_dl_progress,
                     attemptstogetlink,
-                    rderror,
+                    debrid_error,
                     completedtask,
                 ),
             )
@@ -96,16 +96,16 @@ def realdebridtorrent(magnet):
             error = 1
             moveprocessed(magnet, error)
         case "error":
-            rdstatus = "General Error"
+            debrid_status = "General Error"
             cursor.execute(
-                """INSERT INTO tasks(id, filename, rdstatus, rdprogressdownload, attemptstogetlink, rderror,completed) VALUES (?,?,?,?,?,?,?)""",
+                """INSERT INTO tasks(id, filename, debrid_status, debrid_dl_progress, attemptstogetlink, debrid_error,completed) VALUES (?,?,?,?,?,?,?)""",
                 (
                     myid,
                     filename,
-                    rdstatus,
-                    rdprogressdownload,
+                    debrid_status,
+                    debrid_dl_progress,
                     attemptstogetlink,
-                    rderror,
+                    debrid_error,
                     completedtask,
                 ),
             )
@@ -114,16 +114,16 @@ def realdebridtorrent(magnet):
             error = 1
             moveprocessed(magnet, error)
         case "magnet_conversion":
-            rdstatus = "Stuck Magnet Conversion"
+            debrid_status = "Stuck Magnet Conversion"
             cursor.execute(
-                """INSERT INTO tasks(id, filename, rdstatus, rdprogressdownload, attemptstogetlink, rderror,completed) VALUES (?,?,?,?,?,?,?)""",
+                """INSERT INTO tasks(id, filename, debrid_status, debrid_dl_progress, attemptstogetlink, debrid_error,completed) VALUES (?,?,?,?,?,?,?)""",
                 (
                     myid,
                     filename,
-                    rdstatus,
-                    rdprogressdownload,
+                    debrid_status,
+                    debrid_dl_progress,
                     attemptstogetlink,
-                    rderror,
+                    debrid_error,
                     completedtask,
                 ),
             )
@@ -132,16 +132,16 @@ def realdebridtorrent(magnet):
             error = 1
             moveprocessed(magnet, error)
         case "virus":
-            rdstatus = "File is Virus"
+            debrid_status = "File is Virus"
             cursor.execute(
-                """INSERT INTO tasks(id, filename, rdstatus, rdprogressdownload, attemptstogetlink, rderror,completed) VALUES (?,?,?,?,?,?,?)""",
+                """INSERT INTO tasks(id, filename, debrid_status, debrid_dl_progress, attemptstogetlink, debrid_error,completed) VALUES (?,?,?,?,?,?,?)""",
                 (
                     myid,
                     filename,
-                    rdstatus,
-                    rdprogressdownload,
+                    debrid_status,
+                    debrid_dl_progress,
                     attemptstogetlink,
-                    rderror,
+                    debrid_error,
                     completedtask,
                 ),
             )
@@ -150,16 +150,16 @@ def realdebridtorrent(magnet):
             error = 1
             moveprocessed(magnet, error)
         case "dead":
-            rdstatus = "Link is Dead"
+            debrid_status = "Link is Dead"
             cursor.execute(
-                """INSERT INTO tasks(id, filename, rdstatus, rdprogressdownload, attemptstogetlink, rderror,completed) VALUES (?,?,?,?,?,?,?)""",
+                """INSERT INTO tasks(id, filename, debrid_status, debrid_dl_progress, attemptstogetlink, debrid_error,completed) VALUES (?,?,?,?,?,?,?)""",
                 (
                     myid,
                     filename,
-                    rdstatus,
-                    rdprogressdownload,
+                    debrid_status,
+                    debrid_dl_progress,
                     attemptstogetlink,
-                    rderror,
+                    debrid_error,
                     completedtask,
                 ),
             )
@@ -175,28 +175,28 @@ def realdebridtorrent(magnet):
             "https://api.real-debrid.com/rest/1.0/torrents/info/"
             + myid
             + "?auth_token="
-            + rdapikey
+            + realdebrid_apikey
         )
         response = requests.get(selecttorrentinfo)
-        responsefromrd = response.json()
-        if responsefromrd["status"] == "downloaded":
+        debrid_response = response.json()
+        if debrid_response["status"] == "downloaded":
             completed = 1
         else:
             completed = 0
-        rdstatus = "Downloading"
+        debrid_status = "Downloading"
         attemptstogetlink = attemptstogetlink + 1
-        rdprogressdownload = responsefromrd["progress"]
+        debrid_dl_progress = debrid_response["progress"]
         completedtask = "No"
-        rderror = "No error"
+        debrid_error = "No error"
         cursor.execute(
-            """INSERT INTO tasks(id, filename, rdstatus, rdprogressdownload, attemptstogetlink, rderror,completed) VALUES (?,?,?,?,?,?,?)""",
+            """INSERT INTO tasks(id, filename, debrid_status, debrid_dl_progress, attemptstogetlink, debrid_error,completed) VALUES (?,?,?,?,?,?,?)""",
             (
                 myid,
                 filename,
-                rdstatus,
-                rdprogressdownload,
+                debrid_status,
+                debrid_dl_progress,
                 attemptstogetlink,
-                rderror,
+                debrid_error,
                 completedtask,
             ),
         )
@@ -207,52 +207,52 @@ def realdebridtorrent(magnet):
             time.sleep(waitbetween)
 
     if completed == 1:
-        rdstatus = "Downloaded to RD"
+        debrid_status = "Downloaded to RD"
         attemptstogetlink = attemptstogetlink
-        rderror = "none"
+        debrid_error = "none"
         completedtask = "Yes"
-        rdprogressdownload = 100
+        debrid_dl_progress = 100
         cursor.execute(
-            """INSERT INTO tasks(id, filename, rdstatus, attemptstogetlink, rderror,rdprogressdownload,completed) VALUES (?,?,?,?,?,?,?)""",
+            """INSERT INTO tasks(id, filename, debrid_status, attemptstogetlink, debrid_error,debrid_dl_progress,completed) VALUES (?,?,?,?,?,?,?)""",
             (
                 myid,
                 filename,
-                rdstatus,
+                debrid_status,
                 attemptstogetlink,
-                rderror,
-                rdprogressdownload,
+                debrid_error,
+                debrid_dl_progress,
                 completedtask,
             ),
         )
         connection.commit()
         aria2 = aria2p.API(aria2p.Client(host=aria2host, port=6800, secret=secretkey))
         error = 0
-        links = responsefromrd["links"]
+        links = debrid_response["links"]
         for i in range(len(links)):
             getdownloadlinkurl = (
                 "https://api.real-debrid.com/rest/1.0/unrestrict/link?auth_token="
-                + rdapikey
+                + realdebrid_apikey
             )
             filetoselect = {"link": links[i]}
             response = requests.post(getdownloadlinkurl, data=filetoselect)
-            responsefromrd = response.json()
-            mylink = responsefromrd["download"]
+            debrid_response = response.json()
+            mylink = debrid_response["download"]
             try:
                 download = aria2.add(mylink)
             except:
                 print("Error Connecting To Your ARIA2 Instance")
         moveprocessed(magnet, error)
         time.sleep(1)
-        rdstatus = "Sent to aria2"
+        debrid_status = "Sent to aria2"
         cursor.execute(
-            """INSERT INTO tasks(id, filename, rdstatus, attemptstogetlink, rderror,rdprogressdownload,completed) VALUES (?,?,?,?,?,?,?)""",
+            """INSERT INTO tasks(id, filename, debrid_status, attemptstogetlink, debrid_error,debrid_dl_progress,completed) VALUES (?,?,?,?,?,?,?)""",
             (
                 myid,
                 filename,
-                rdstatus,
+                debrid_status,
                 attemptstogetlink,
-                rderror,
-                rdprogressdownload,
+                debrid_error,
+                debrid_dl_progress,
                 completedtask,
             ),
         )
@@ -260,27 +260,27 @@ def realdebridtorrent(magnet):
 
     elif completed == 2:
         time.sleep(1)
-        deletetorrentfromrd = (
+        deletetorrentfromdebrid = (
             "https://api.real-debrid.com/rest/1.0/torrents/delete/"
             + myid
             + "?auth_token="
-            + rdapikey
+            + realdebrid_apikey
         )
-        response = requests.delete(deletetorrentfromrd)
+        response = requests.delete(deletetorrentfromdebrid)
         error = 1
-        rdstatus = "Max Timeout Reached"
+        debrid_status = "Max Timeout Reached"
         attemptstogetlink = attemptstogetlink
-        rderror = "Max Time"
+        debrid_error = "Max Time"
         completedtask = "No"
         cursor.execute(
-            """INSERT INTO tasks(id, filename, rdstatus, attemptstogetlink, rderror,rdprogressdownload,completed) VALUES (?,?,?,?,?,?,?)""",
+            """INSERT INTO tasks(id, filename, debrid_status, attemptstogetlink, debrid_error,debrid_dl_progress,completed) VALUES (?,?,?,?,?,?,?)""",
             (
                 myid,
                 filename,
-                rdstatus,
+                debrid_status,
                 attemptstogetlink,
-                rderror,
-                rdprogressdownload,
+                debrid_error,
+                debrid_dl_progress,
                 completedtask,
             ),
         )

@@ -13,7 +13,7 @@ mask = pyinotify.IN_DELETE | pyinotify.IN_CREATE  # watched events
 connection = sqlite3.connect(databaseinfo, timeout=20)
 cursor = connection.cursor()
 cursor.execute(
-    "CREATE TABLE IF NOT EXISTS tasks (id TEXT, filename TEXT, rdstatus TEXT, rdprogressdownload INTEGER, attemptstogetlink INTEGER, rderror TEXT , completed TEXT , Timestamp DATETIME DEFAULT CURRENT_TIMESTAMP )"
+    "CREATE TABLE IF NOT EXISTS tasks (id TEXT, filename TEXT, debrid_status TEXT, debrid_dl_progress INTEGER, attemptstogetlink INTEGER, debrid_error TEXT , completed TEXT , Timestamp DATETIME DEFAULT CURRENT_TIMESTAMP )"
 )
 
 

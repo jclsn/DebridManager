@@ -69,10 +69,10 @@
          {% for row in newlist %}
             <tr>
                <td>{{row["filename"]}}</td>
-               <td> {{ row["rdstatus"]}}</td>
-               <td>{{row['rdprogressdownload']}}%</td>
+               <td> {{ row["debrid_status"]}}</td>
+               <td>{{row['debrid_dl_progress']}}%</td>
                <td>{{row['attemptstogetlink']}}</td>
-               <td>{{row['rderror']}}</td>
+               <td>{{row['debrid_error']}}</td>
                <td>{{row['completed']}}</td>
                 <td>
                    <a href="/info/{{row.id}}" button type="button" class="btn btn-primary mx-2">Info</abutton>

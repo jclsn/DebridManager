@@ -22,7 +22,7 @@ try:
     id = 1
     cur.execute("SELECT * FROM settings where id=?", (id,))
     rows = cur.fetchall()
-    loginlist = [rows[0][6], rows[0][7]]
+    loginlist = [rows[0][7], rows[0][8]]
 
     app.config["BASIC_AUTH_USERNAME"] = loginlist[0]
     app.config["BASIC_AUTH_PASSWORD"] = loginlist[1]
@@ -102,18 +102,26 @@ def list():
                 status = row[2]
                 progress = row[3]
                 attempts = row[4]
-                rderror = row[5]
+                debrid_error = row[5]
                 completed = row[6]
                 import sqlite3
 
                 connection = sqlite3.connect(databaseinfo, timeout=20)
                 cursor = connection.cursor()
                 cursor.execute(
-                    "CREATE TABLE IF NOT EXISTS webuiview (id TEXT, filename TEXT, rdstatus TEXT, rdprogressdownload INTEGER, attemptstogetlink INTEGER, rderror TEXT , completed INTEGER , Timestamp DATETIME DEFAULT CURRENT_TIMESTAMP )"
+                    "CREATE TABLE IF NOT EXISTS webuiview (id TEXT, filename TEXT, debrid_status TEXT, debrid_dl_progress INTEGER, attemptstogetlink INTEGER, debrid_error TEXT, completed INTEGER , Timestamp DATETIME DEFAULT CURRENT_TIMESTAMP )"
                 )
                 cursor.execute(
-                    """INSERT INTO webuiview(id, filename, rdstatus, rdprogressdownload, attemptstogetlink ,rderror,completed) VALUES (?,?,?,?,?,?,?)""",
-                    (myid, name, status, progress, attempts, rderror, completed),
+                    """INSERT INTO webuiview(id, filename, debrid_status, debrid_dl_progress, attemptstogetlink, debrid_error, completed) VALUES (?,?,?,?,?,?,?)""",
+                    (
+                        myid,
+                        name,
+                        status,
+                        progress,
+                        attempts,
+                        debrid_error,
+                        completed,
+                    ),
                 )
                 connection.commit()
 
@@ -169,8 +177,8 @@ def deletecompleted():
     con = sql.connect(databaseinfo, timeout=20)
     con.row_factory = sql.Row
     cur = con.cursor()
-    rd_status = "Sent to aria2"
-    cur.execute("SELECT * FROM tasks where rdstatus=?", (rd_status,))
+    debrid__status = "Sent to aria2"
+    cur.execute("SELECT * FROM tasks where debrid_status=?", (debrid_status,))
     rows = cur.fetchall()
     todeleteid = []
     for row in rows:
@@ -199,7 +207,7 @@ def settings():
         result = result[0][0]
         if result == 0:
             cur.execute(
-                "CREATE TABLE IF NOT EXISTS settings (id INTEGER,waitbetween INTEGER, maxattempts INTEGER, aria2host TEXT, aria2secret TEXT, rdapikey TEXT,username TEXT, password TEXT)"
+                "CREATE TABLE IF NOT EXISTS settings (id INTEGER,waitbetween INTEGER, maxattempts INTEGER, aria2host TEXT, aria2secret TEXT, realdebrid_apikey TEXT,username TEXT, password TEXT)"
             )
             con.commit()
             id = 1
@@ -207,18 +215,18 @@ def settings():
             maxattempts = 10
             aria2host = "http://0.0.0.0"
             aria2secret = "mysecret"
-            rdapikey = "placeholderapikey"
+            realdebrid_apikey = "placeholderapikey"
             username = "admin"
             password = "admin"
             cur.execute(
-                """INSERT INTO settings(id,waitbetween, maxattempts, aria2host, aria2secret, rdapikey,username,password) VALUES (?,?,?,?,?,?,?,?)""",
+                """INSERT INTO settings(id,waitbetween, maxattempts, aria2host, aria2secret, realdebrid_apikey,username,password) VALUES (?,?,?,?,?,?,?,?)""",
                 (
                     id,
                     waitbetween,
                     maxattempts,
                     aria2host,
                     aria2secret,
-                    rdapikey,
+                    realdebrid_apikey,
                     username,
                     password,
                 ),
@@ -229,7 +237,7 @@ def settings():
                 maxattempts,
                 aria2host,
                 aria2secret,
-                rdapikey,
+                realdebrid_apikey,
                 username,
                 password,
             ]
@@ -249,6 +257,7 @@ def settings():
                 rows[0][5],
                 rows[0][6],
                 rows[0][7],
+                rows[0][8],
             ]
             return render_template("settings.html", list1=mylist)
     elif request.method == "POST":
@@ -259,17 +268,17 @@ def settings():
         maxattempts = request.form["maxattempts"]
         aria2host = request.form["aria2host"]
         aria2secret = request.form["aria2secret"]
-        rdapikey = request.form["rdapikey"]
+        realdebrid_apikey = request.form["realdebrid_apikey"]
         username = request.form["username"]
         password = request.form["password"]
         cur.execute(
-            """UPDATE settings SET waitbetween = ?, maxattempts=?, aria2host=?,aria2secret=?, rdapikey=?,username=?,password=? WHERE id = 1""",
+            """UPDATE settings SET waitbetween = ?, maxattempts=?, aria2host=?, aria2secret=?, realdebrid_apikey=?, username=?, password=? WHERE id = 1""",
             (
                 waitbetween,
                 maxattempts,
                 aria2host,
                 aria2secret,
-                rdapikey,
+                realdebrid_apikey,
                 username,
                 password,
             ),
@@ -280,7 +289,7 @@ def settings():
             maxattempts,
             aria2host,
             aria2secret,
-            rdapikey,
+            realdebrid_apikey,
             username,
             password,
         ]
