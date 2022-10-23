@@ -3,6 +3,7 @@ import time
 import os
 import aria2p
 import sqlite3
+import random
 
 databaseinfo = os.getenv("dbinfo")
 connection = sqlite3.connect(databaseinfo, timeout=20)
@@ -18,6 +19,7 @@ maxattempts = result[0][2]
 aria2host = result[0][3]
 secretkey = result[0][4]
 realdebrid_apikey = result[0][5]
+alldebrid_apikey = result[0][6]
 
 
 def moveprocessed(pathname, error):
@@ -34,7 +36,8 @@ def moveprocessed(pathname, error):
 def realdebridtorrent(magnet):
     global completed
     addmagneturl = (
-        "https://api.real-debrid.com/rest/1.0/torrents/addMagnet?auth_token=" + realdebrid_apikey
+        "https://api.real-debrid.com/rest/1.0/torrents/addMagnet?auth_token="
+        + realdebrid_apikey
     )
     magnetaddjson = {"magnet": magnet}
     response = requests.post(addmagneturl, data=magnetaddjson)
@@ -42,7 +45,7 @@ def realdebridtorrent(magnet):
     myid = debrid_response["id"]
     head, tail = os.path.split(magnet)
     filename = tail
-    debrid_status = "Submitted to RD"
+    debrid_status = "Submitted to RealDebrid"
     attemptstogetlink = 0
     debrid_error = " "
     completedtask = "No"
@@ -288,11 +291,281 @@ def realdebridtorrent(magnet):
         moveprocessed(magnet, error)
 
 
+def alldebridtorrent(magnet):
+
+    global completed
+    global error
+
+    # Defaults
+    debrid_error = " "
+    completedtask = "No"
+    attemptstogetlink = 0
+    error_response = False
+    attempt_limit_reached = False
+
+    # Send magnet link to AllDebrid
+    try:
+        response = requests.post(
+            "https://api.alldebrid.com/v4/magnet/upload?agent=Debridmanager&apikey="
+            + alldebrid_apikey,
+            data={"magnet": magnet},
+        ).json()
+    except:
+        print("Couldn't communicate with AllDebrid")
+        return
+
+    myid = response["id"]
+    head, tail = os.path.split(magnet)
+    filename = tail
+    debrid_status = "Submitted to AllDebrid"
+
+    try:
+        cursor.execute(
+            """INSERT INTO tasks(id, filename, debrid_status, attemptstogetlink, debrid_error, completed) VALUES (?,?,?,?,?,?)""",
+            (
+                myid,
+                filename,
+                debrid_status,
+                attemptstogetlink,
+                debrid_error,
+                completedtask,
+            ),
+        )
+        connection.commit()
+    except:
+        print("Couldn't update database")
+        return
+
+    time.sleep(2)
+
+    # Query download status from AllDebrid
+    try:
+        response = requests.get(
+            "https://api.alldebrid.com/v4/magnet/status?agent=Debridmanager&apikey="
+            + alldebrid_apikey,
+            data={"id": myid},
+        ).json()
+    except:
+        print("Couldn't communicate with AllDebrid")
+        return
+
+    match response["statusCode"]:
+        case 0:  # In queue
+            completed = False
+        case 4:  # Ready
+            completed = True
+        case 5:
+            debrid_status = "Upload failure"
+            error_response = True
+        case 6:
+            debrid_status = "Internal error while unpacking"
+            error_response = True
+        case 7:
+            debrid_status = "Not downloaded in 20 min"
+            error_response = True
+        case 8:
+            debrid_status = "File too big"
+            error_response = True
+        case 9:
+            debrid_status = "Internal error"
+            error_response = True
+        case 10:
+            debrid_status = "Download took more than 72h"
+            error_response = True
+        case 11:
+            debrid_status = "Deleted on the hoster website"
+            error_response = True
+        case _:
+            completed = False
+
+    if error_response:  # Update database in case of an error
+        try:
+            cursor.execute(
+                """INSERT INTO tasks(id, filename, debrid_status, debrid_dl_progress, attemptstogetlink, debrid_error, completed) VALUES (?,?,?,?,?,?,?)""",
+                (
+                    myid,
+                    filename,
+                    debrid_status,
+                    debrid_dl_progress,
+                    attemptstogetlink,
+                    debrid_error,
+                    completedtask,
+                ),
+            )
+            connection.commit()
+            completed = True
+            error = 1
+            moveprocessed(magnet, error)
+            return
+        except:
+            print("Couldn't update database")
+            return
+
+    """
+    If the download is not instantly available, monitor the download status
+    using the AllDebrid LiveMode
+
+    https://docs.alldebrid.com/?shell#status-live-mode
+    """
+    session_id = random.randint(0, 1000)
+
+    while not completed or not attempt_limit_reached:
+        try:
+            response = requests.get(
+                "https://api.alldebrid.com/v4/magnet/status?agent=Debridmanager&apikey="
+                + alldebrid_apikey
+                + "&session="
+                + session_id
+                + "&counter="
+                + attemptstogetlink,
+                data={"id": myid},
+            ).json()
+        except:
+            print("Couldn't communicate with AllDebrid")
+            return
+
+        debrid_status = "Downloading"
+        attemptstogetlink += 1
+        debrid_dl_progress = int(response["downloaded"] / response["size"] * 100)
+        completedtask = "No"
+        debrid_error = "No error"
+
+        try:
+            cursor.execute(
+                """INSERT INTO tasks(id, filename, debrid_status, debrid_dl_progress, attemptstogetlink, debrid_error, completed) VALUES (?,?,?,?,?,?,?)""",
+                (
+                    myid,
+                    filename,
+                    debrid_status,
+                    debrid_dl_progress,
+                    attemptstogetlink,
+                    debrid_error,
+                    completedtask,
+                ),
+            )
+            connection.commit()
+        except:
+            print("Couldn't update database")
+            return
+
+        if attemptstogetlink >= maxattempts:
+            attempt_limit_reached = True
+        else:
+            time.sleep(waitbetween)
+
+        if response["statusCode"] == 4:  # Ready
+            completed = True
+
+    if completed:
+        debrid_status = "Downloaded to AllDebrid"
+        debrid_error = "none"
+        completedtask = "Yes"
+        debrid_dl_progress = 100
+
+        try:
+            cursor.execute(
+                """INSERT INTO tasks(id, filename, debrid_status, attemptstogetlink, debrid_error, debrid_dl_progress, completed) VALUES (?,?,?,?,?,?,?)""",
+                (
+                    myid,
+                    filename,
+                    debrid_status,
+                    attemptstogetlink,
+                    debrid_error,
+                    debrid_dl_progress,
+                    completedtask,
+                ),
+            )
+            connection.commit()
+        except:
+            print("Couldn't update database")
+            return
+
+        aria2 = aria2p.API(aria2p.Client(host=aria2host, port=6800, secret=secretkey))
+        error = 0
+
+        for link in response["links"]:
+            try:
+                response = requests.post(
+                    "https://api.alldebrid.com/v4/link/unlock?agent=Debridmanager&apikey="
+                    + alldebrid_apikey,
+                    data={"link": link},
+                ).json()
+            except:
+                print("Couldn't communicate with AllDebrid")
+                return
+
+            try:
+                aria2.add(response["link"])
+            except:
+                print("Error Connecting To Your ARIA2 Instance")
+
+        moveprocessed(magnet, error)
+        time.sleep(1)
+        debrid_status = "Sent to aria2"
+        cursor.execute(
+            """INSERT INTO tasks(id, filename, debrid_status, attemptstogetlink, debrid_error,debrid_dl_progress,completed) VALUES (?,?,?,?,?,?,?)""",
+            (
+                myid,
+                filename,
+                debrid_status,
+                attemptstogetlink,
+                debrid_error,
+                debrid_dl_progress,
+                completedtask,
+            ),
+        )
+        connection.commit()
+
+    if attempt_limit_reached:
+        time.sleep(1)
+
+        # Delete magnet from AllDebrid
+        try:
+            response = requests.delete(
+                "https://api.alldebrid.com/v4/link/delete?agent=Debridmanager&apikey="
+                + alldebrid_apikey,
+                data={"id": myid},
+            ).json()
+        except:
+            print("Couldn't communicate with AllDebrid")
+            return
+
+        error = 1
+        debrid_status = "Max Timeout Reached"
+        debrid_error = "Max Time"
+        completedtask = "No"
+
+        try:
+            cursor.execute(
+                """INSERT INTO tasks(id, filename, debrid_status, attemptstogetlink, debrid_error, debrid_dl_progress, completed) VALUES (?,?,?,?,?,?,?)""",
+                (
+                    myid,
+                    filename,
+                    debrid_status,
+                    attemptstogetlink,
+                    debrid_error,
+                    debrid_dl_progress,
+                    completedtask,
+                ),
+            )
+            connection.commit()
+        except:
+            print("Couldn't update database")
+            return
+
+        moveprocessed(magnet, error)
+
+
 import sys
 
 originalmagnet = sys.argv[1]
-print("Starting Script on Received Magnet")
+print("Starting script on received magnet link")
 with open(originalmagnet, "r") as f:
     magnetlink = f.readlines()
 magnetlink = magnetlink[0]
-realdebridtorrent(magnetlink)
+
+if realdebrid_apikey:
+    realdebridtorrent(magnetlink)
+elif alldebrid_apikey:
+    alldebridtorrent(magnetlink)
+

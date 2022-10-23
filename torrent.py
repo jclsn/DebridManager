@@ -18,6 +18,7 @@ maxattempts = result[0][2]
 aria2host = result[0][3]
 secretkey = result[0][4]
 realdebrid_apikey = result[0][5]
+alldebrid_apikey = result[0][6]
 
 
 def moveprocessed(pathname, error):

@@ -22,7 +22,7 @@ try:
     id = 1
     cur.execute("SELECT * FROM settings where id=?", (id,))
     rows = cur.fetchall()
-    loginlist = [rows[0][7], rows[0][8]]
+    loginlist = [rows[0][1], rows[0][2]]
 
     app.config["BASIC_AUTH_USERNAME"] = loginlist[0]
     app.config["BASIC_AUTH_PASSWORD"] = loginlist[1]
@@ -207,7 +207,7 @@ def settings():
         result = result[0][0]
         if result == 0:
             cur.execute(
-                "CREATE TABLE IF NOT EXISTS settings (id INTEGER,waitbetween INTEGER, maxattempts INTEGER, aria2host TEXT, aria2secret TEXT, realdebrid_apikey TEXT,username TEXT, password TEXT)"
+                "CREATE TABLE IF NOT EXISTS settings (id INTEGER,waitbetween INTEGER, maxattempts INTEGER, aria2host TEXT, aria2secret TEXT, realdebrid_apikey TEXT, alldebrid_apikey TEXT, username TEXT, password TEXT)"
             )
             con.commit()
             id = 1
@@ -215,11 +215,12 @@ def settings():
             maxattempts = 10
             aria2host = "http://0.0.0.0"
             aria2secret = "mysecret"
+            alldebrid_apikey = "placeholderapikey"
             realdebrid_apikey = "placeholderapikey"
             username = "admin"
             password = "admin"
             cur.execute(
-                """INSERT INTO settings(id,waitbetween, maxattempts, aria2host, aria2secret, realdebrid_apikey,username,password) VALUES (?,?,?,?,?,?,?,?)""",
+                """INSERT INTO settings(id,waitbetween, maxattempts, aria2host, aria2secret, realdebrid_apikey, alldebrid_apikey, username, password) VALUES (?,?,?,?,?,?,?,?)""",
                 (
                     id,
                     waitbetween,
@@ -227,6 +228,7 @@ def settings():
                     aria2host,
                     aria2secret,
                     realdebrid_apikey,
+                    alldebrid_apikey,
                     username,
                     password,
                 ),
@@ -238,6 +240,7 @@ def settings():
                 aria2host,
                 aria2secret,
                 realdebrid_apikey,
+                alldebrid_apikey,
                 username,
                 password,
             ]
@@ -269,16 +272,18 @@ def settings():
         aria2host = request.form["aria2host"]
         aria2secret = request.form["aria2secret"]
         realdebrid_apikey = request.form["realdebrid_apikey"]
+        alldebrid_apikey = request.form["alldebrid_apikey"]
         username = request.form["username"]
         password = request.form["password"]
         cur.execute(
-            """UPDATE settings SET waitbetween = ?, maxattempts=?, aria2host=?, aria2secret=?, realdebrid_apikey=?, username=?, password=? WHERE id = 1""",
+            """UPDATE settings SET waitbetween = ?, maxattempts=?, aria2host=?, aria2secret=?, realdebrid_apikey=?, alldebrid_apikey=?, username=?, password=? WHERE id = 1""",
             (
                 waitbetween,
                 maxattempts,
                 aria2host,
                 aria2secret,
                 realdebrid_apikey,
+                alldebrid_apikey,
                 username,
                 password,
             ),
@@ -290,6 +295,7 @@ def settings():
             aria2host,
             aria2secret,
             realdebrid_apikey,
+            alldebrid_apikey,
             username,
             password,
         ]
