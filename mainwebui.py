@@ -1,6 +1,8 @@
 import os
+import pathlib
 import urllib
 import sqlite3 as sql
+
 
 from flask import Flask, render_template, request, redirect
 from flask import Flask, render_template
@@ -8,8 +10,8 @@ from flask_basicauth import BasicAuth
 
 global myversion
 
-databaseinfo = os.getenv("dbinfo")
-pathtowatch = os.getenv("watchpath")
+databaseinfo = str(os.getenv("dbinfo"))
+pathtowatch = str(os.getenv("watchpath"))
 connection = sql.connect(":memory:")
 connection.set_trace_callback(print)
 
@@ -80,10 +82,8 @@ def list():
     result = cur.fetchall()
     result = result[0][0]
     if result == 0:
-        path = pathtowatch + "/processed"
-        os.mkdir(path, mode=0o777)
-        path = pathtowatch + "/errored"
-        os.mkdir(path, mode=0o777)
+        pathlib.Path(pathtowatch + "processed").mkdir(mode=0o777, exist_ok=True)
+        pathlib.Path(pathtowatch + "errored").mkdir(mode=0o777, exist_ok=True)
         return render_template("firstlogin.html")
     else:
         cur.execute("DROP TABLE IF EXISTS webuiview")
