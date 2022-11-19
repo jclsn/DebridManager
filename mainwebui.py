@@ -39,9 +39,9 @@ basic_auth = BasicAuth(app)
 @basic_auth.required
 def list():
     myversion = float(1.1)
+    updates = []
     try:
         url = "https://debrid-manager-updates.onrender.com/rdmupdate.txt"
-        updates = []
         for line in urllib.request.urlopen(url):
             updates.append(line.decode("utf-8"))
 
@@ -51,6 +51,7 @@ def list():
 
     try:
         url = "https://debrid-manager-updates.onrender.com/rdmversion.txt"
+        latestversion = ""
         for line in urllib.request.urlopen(url):
             latestversion = line.decode("utf-8")
             latestversion = float(latestversion)
@@ -177,7 +178,7 @@ def deletecompleted():
     con = sql.connect(databaseinfo, timeout=20)
     con.row_factory = sql.Row
     cur = con.cursor()
-    debrid__status = "Sent to aria2"
+    debrid_status = "Sent to aria2"
     cur.execute("SELECT * FROM tasks where debrid_status=?", (debrid_status,))
     rows = cur.fetchall()
     todeleteid = []
