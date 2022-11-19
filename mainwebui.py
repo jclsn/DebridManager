@@ -221,7 +221,7 @@ def settings():
             username = "admin"
             password = "admin"
             cur.execute(
-                """INSERT INTO settings(id,waitbetween, maxattempts, aria2host, aria2secret, realdebrid_apikey, alldebrid_apikey, username, password) VALUES (?,?,?,?,?,?,?,?)""",
+                """INSERT INTO settings(id, waitbetween, maxattempts, aria2host, aria2secret, realdebrid_apikey, alldebrid_apikey, username, password) VALUES (?,?,?,?,?,?,?,?,?)""",
                 (
                     id,
                     waitbetween,
