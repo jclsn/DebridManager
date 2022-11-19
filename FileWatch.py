@@ -2,8 +2,8 @@ import os
 import pyinotify
 import sqlite3
 
-databaseinfo = os.getenv("dbinfo")
-pathtowatch = os.getenv("watchpath")
+databaseinfo = str(os.getenv("dbinfo"))
+pathtowatch = str(os.getenv("watchpath"))
 
 
 wm = pyinotify.WatchManager()  # Watch Manager
