@@ -17,12 +17,13 @@ pathtowatch = str(os.getenv("watchpath"))
 connection = sql.connect(":memory:")
 connection.set_trace_callback(print)
 
-# Start watching files with pyinotify
+# Start watching files in the background with pyinotify
 watch_process = subprocess.Popen(['python', 'FileWatch.py'])
 
-# main starts here
+# Create a flask object
 app = Flask(__name__)
 
+# Check for stored credentials in the database
 try:
     con = sql.connect(databaseinfo, timeout=20)
     con.row_factory = sql.Row
@@ -38,47 +39,13 @@ except:
     app.config["BASIC_AUTH_USERNAME"] = "admin"
     app.config["BASIC_AUTH_PASSWORD"] = "admin"
 
+# Trigger basic authentication dialog
 basic_auth = BasicAuth(app)
 
-
+# Define root URL function
 @app.route("/")
 @basic_auth.required
 def list():
-    myversion = float(1.1)
-    updates = []
-    try:
-        url = "https://debrid-manager-updates.onrender.com/rdmupdate.txt"
-        for line in urllib.request.urlopen(url):
-            updates.append(line.decode("utf-8"))
-
-    except:
-        print("Failed To Fetch Changelog From Online")
-        updates.append("Failed to fetch updates online")
-
-    try:
-        url = "https://debrid-manager-updates.onrender.com/rdmversion.txt"
-        latestversion = ""
-        for line in urllib.request.urlopen(url):
-            latestversion = line.decode("utf-8")
-            latestversion = float(latestversion)
-        if myversion == latestversion:
-            hideversion = 1
-            updatenotice = ""
-        else:
-            myversion = str(myversion)
-            latestversion = str(latestversion)
-            updatenotice = (
-                "You are running an outdated version of Real Debrid Manager ("
-                + myversion
-                + ") -   Please update to the latest version  ("
-                + latestversion
-                + ")"
-            )
-            hideversion = 0
-    except:
-        print("Failed To Fetch version From Online")
-        updatenotice = ""
-        hideversion = 1
 
     con = sql.connect(databaseinfo, timeout=20)
     con.row_factory = sql.Row
@@ -137,10 +104,6 @@ def list():
         return render_template(
             "main.html",
             newlist=rows,
-            updates=updates,
-            version=myversion,
-            updatenotice=updatenotice,
-            hideversionotice=hideversion,
         )
 
 
