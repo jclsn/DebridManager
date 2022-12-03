@@ -55,17 +55,22 @@ def list():
     )
     result = cur.fetchall()
     result = result[0][0]
+
     if result == 0:
         pathlib.Path(pathtowatch + "processed").mkdir(mode=0o777, exist_ok=True)
         pathlib.Path(pathtowatch + "errored").mkdir(mode=0o777, exist_ok=True)
+
         return render_template("firstlogin.html")
+
     else:
         cur.execute("DROP TABLE IF EXISTS webuiview")
         cur.execute("select  * from tasks ORDER BY Timestamp DESC")
         rows = cur.fetchall()
         knownid = []
+
         for row in rows:
             downloadid = row[0]
+
             if downloadid in knownid:
                 pass
             else:
@@ -78,9 +83,8 @@ def list():
                 attempts = row[4]
                 debrid_error = row[5]
                 completed = row[6]
-                import sqlite3
 
-                connection = sqlite3.connect(databaseinfo, timeout=20)
+                connection = sql.connect(databaseinfo, timeout=20)
                 cursor = connection.cursor()
                 cursor.execute(
                     "CREATE TABLE IF NOT EXISTS webuiview (id TEXT, filename TEXT, debrid_status TEXT, debrid_dl_progress INTEGER, attemptstogetlink INTEGER, debrid_error TEXT, completed INTEGER , Timestamp DATETIME DEFAULT CURRENT_TIMESTAMP )"
@@ -105,7 +109,6 @@ def list():
             "main.html",
             newlist=rows,
         )
-
 
 @app.route("/info/<id>")
 @basic_auth.required
