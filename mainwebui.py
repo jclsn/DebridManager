@@ -1,8 +1,10 @@
+#!/usr/bin/env python3
+
 import os
 import pathlib
 import urllib
 import sqlite3 as sql
-
+import subprocess
 
 from flask import Flask, render_template, request, redirect
 from flask import Flask, render_template
@@ -15,6 +17,10 @@ pathtowatch = str(os.getenv("watchpath"))
 connection = sql.connect(":memory:")
 connection.set_trace_callback(print)
 
+# Start watching files with pyinotify
+watch_process = subprocess.Popen(['python', 'FileWatch.py'])
+
+# main starts here
 app = Flask(__name__)
 
 try:
