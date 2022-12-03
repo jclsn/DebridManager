@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 
+from logging import log
 import os
 import pathlib
 import urllib
@@ -31,7 +32,7 @@ try:
     id = 1
     cur.execute("SELECT * FROM settings where id=?", (id,))
     rows = cur.fetchall()
-    loginlist = [rows[0][1], rows[0][2]]
+    loginlist = [rows[0][7], rows[0][8]]
 
     app.config["BASIC_AUTH_USERNAME"] = loginlist[0]
     app.config["BASIC_AUTH_PASSWORD"] = loginlist[1]
@@ -47,14 +48,16 @@ basic_auth = BasicAuth(app)
 @basic_auth.required
 def list():
 
-    con = sql.connect(databaseinfo, timeout=20)
-    con.row_factory = sql.Row
-    cur = con.cursor()
-    cur.execute(
+    connection = sql.connect(databaseinfo, timeout=20)
+    connection.row_factory = sql.Row
+    cursor = connection.cursor()
+    cursor.execute(
         "select count(*) from sqlite_master where type='table' and name='settings'"
     )
-    result = cur.fetchall()
+
+    result = cursor.fetchall()
     result = result[0][0]
+
 
     if result == 0:
         pathlib.Path(pathtowatch + "processed").mkdir(mode=0o777, exist_ok=True)
@@ -63,9 +66,9 @@ def list():
         return render_template("firstlogin.html")
 
     else:
-        cur.execute("DROP TABLE IF EXISTS webuiview")
-        cur.execute("select  * from tasks ORDER BY Timestamp DESC")
-        rows = cur.fetchall()
+        cursor.execute("DROP TABLE IF EXISTS webuiview")
+        cursor.execute("select  * from tasks ORDER BY Timestamp DESC")
+        rows = cursor.fetchall()
         knownid = []
 
         for row in rows:
@@ -103,8 +106,8 @@ def list():
                 )
                 connection.commit()
 
-            cur.execute("select  * from webuiview ORDER BY Timestamp DESC")
-            rows = cur.fetchall()
+            cursor.execute("select  * from webuiview ORDER BY Timestamp DESC")
+            rows = cursor.fetchall()
         return render_template(
             "main.html",
             newlist=rows,
@@ -166,6 +169,7 @@ def deletecompleted():
     return redirect("/")
 
 
+# Define settings URL function
 @app.route("/settings", methods=["GET", "POST"])
 @basic_auth.required
 def settings():
@@ -173,12 +177,15 @@ def settings():
         con = sql.connect(databaseinfo, timeout=20)
         con.row_factory = sql.Row
         cur = con.cursor()
+
+        # Check if settings table exists in database
         cur.execute(
             "select count(*) from sqlite_master where type='table' and name='settings'"
         )
         result = cur.fetchall()
-        result = result[0][0]
-        if result == 0:
+        table_exists = result[0][0]
+
+        if not table_exists:
             cur.execute(
                 "CREATE TABLE IF NOT EXISTS settings (id INTEGER,waitbetween INTEGER, maxattempts INTEGER, aria2host TEXT, aria2secret TEXT, realdebrid_apikey TEXT, alldebrid_apikey TEXT, username TEXT, password TEXT)"
             )
@@ -186,14 +193,24 @@ def settings():
             id = 1
             waitbetween = 300
             maxattempts = 10
-            aria2host = "http://0.0.0.0"
-            aria2secret = "mysecret"
-            alldebrid_apikey = "placeholderapikey"
-            realdebrid_apikey = "placeholderapikey"
+            aria2host = "localhost"
+            aria2secret = "aria2secret"
+            alldebrid_apikey = "alldebrid_apikey"
+            realdebrid_apikey = "realdebrid_apikey"
             username = "admin"
             password = "admin"
             cur.execute(
-                """INSERT INTO settings(id, waitbetween, maxattempts, aria2host, aria2secret, realdebrid_apikey, alldebrid_apikey, username, password) VALUES (?,?,?,?,?,?,?,?,?)""",
+                """INSERT INTO settings(
+                    id,
+                    waitbetween,
+                    maxattempts,
+                    aria2host,
+                    aria2secret,
+                    realdebrid_apikey,
+                    alldebrid_apikey,
+                    username,
+                    password
+                    ) VALUES (?,?,?,?,?,?,?,?,?)""",
                 (
                     id,
                     waitbetween,
@@ -225,6 +242,7 @@ def settings():
             id = 1
             cur.execute("SELECT * FROM settings where id=?", (id,))
             rows = cur.fetchall()
+            print(rows)
             mylist = [
                 rows[0][1],
                 rows[0][2],
@@ -236,6 +254,7 @@ def settings():
                 rows[0][8],
             ]
             return render_template("settings.html", list1=mylist)
+
     elif request.method == "POST":
         con = sql.connect(databaseinfo)
         con.row_factory = sql.Row
