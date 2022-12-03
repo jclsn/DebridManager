@@ -5,11 +5,19 @@ import aria2p
 import sqlite3
 import random
 
-databaseinfo = os.getenv("dbinfo")
+databaseinfo = str(os.getenv("dbinfo"))
 connection = sqlite3.connect(databaseinfo, timeout=20)
 cursor = connection.cursor()
 cursor.execute(
-    "CREATE TABLE IF NOT EXISTS tasks (id TEXT, filename TEXT, debrid_status TEXT, debrid_dl_progress INTEGER, attemptstogetlink INTEGER, debrid_error TEXT , completed TEXT , Timestamp DATETIME DEFAULT CURRENT_TIMESTAMP )"
+    """CREATE TABLE IF NOT EXISTS tasks (
+        id TEXT,
+        filename TEXT,
+        debrid_status TEXT,
+        debrid_dl_progress INTEGER,
+        attemptstogetlink INTEGER,
+        debrid_error TEXT ,
+        completed TEXT ,
+        Timestamp DATETIME DEFAULT CURRENT_TIMESTAMP )"""
 )
 
 cursor.execute("SELECT * FROM settings where id=1")
@@ -50,9 +58,24 @@ def realdebridtorrent(magnet):
     debrid_error = " "
     completedtask = "No"
     cursor.execute(
-        """INSERT INTO tasks(id, filename, debrid_status, attemptstogetlink, debrid_error,completed) VALUES (?,?,?,?,?,?)""",
-        (myid, filename, debrid_status, attemptstogetlink, debrid_error, completedtask),
+        """INSERT INTO tasks(
+            id,
+            filename,
+            debrid_status,
+            attemptstogetlink,
+            debrid_error,
+            completed)
+            VALUES (?,?,?,?,?,?)""",
+        (
+            myid,
+            filename,
+            debrid_status,
+            attemptstogetlink,
+            debrid_error,
+            completedtask
+        ),
     )
+
     connection.commit()
     time.sleep(2)
     selectfiles = (
@@ -82,7 +105,15 @@ def realdebridtorrent(magnet):
         case "magnet_error":
             debrid_status = "Magnet Error"
             cursor.execute(
-                """INSERT INTO tasks(id, filename, debrid_status, debrid_dl_progress, attemptstogetlink, debrid_error,completed) VALUES (?,?,?,?,?,?,?)""",
+                """INSERT INTO tasks(
+                    id,
+                    filename,
+                    debrid_status,
+                    debrid_dl_progress,
+                    attemptstogetlink,
+                    debrid_error,
+                    completed)
+                    VALUES (?,?,?,?,?,?,?)""",
                 (
                     myid,
                     filename,
@@ -101,7 +132,15 @@ def realdebridtorrent(magnet):
         case "error":
             debrid_status = "General Error"
             cursor.execute(
-                """INSERT INTO tasks(id, filename, debrid_status, debrid_dl_progress, attemptstogetlink, debrid_error,completed) VALUES (?,?,?,?,?,?,?)""",
+                """INSERT INTO tasks(
+                    id,
+                    filename,
+                    debrid_status,
+                    debrid_dl_progress,
+                    attemptstogetlink,
+                    debrid_error,
+                    completed)
+                    VALUES (?,?,?,?,?,?,?)""",
                 (
                     myid,
                     filename,
@@ -119,7 +158,15 @@ def realdebridtorrent(magnet):
         case "magnet_conversion":
             debrid_status = "Stuck Magnet Conversion"
             cursor.execute(
-                """INSERT INTO tasks(id, filename, debrid_status, debrid_dl_progress, attemptstogetlink, debrid_error,completed) VALUES (?,?,?,?,?,?,?)""",
+                """INSERT INTO tasks(
+                    id,
+                    filename,
+                    debrid_status,
+                    debrid_dl_progress,
+                    attemptstogetlink,
+                    debrid_error,
+                    completed)
+                    VALUES (?,?,?,?,?,?,?)""",
                 (
                     myid,
                     filename,
@@ -137,7 +184,15 @@ def realdebridtorrent(magnet):
         case "virus":
             debrid_status = "File is Virus"
             cursor.execute(
-                """INSERT INTO tasks(id, filename, debrid_status, debrid_dl_progress, attemptstogetlink, debrid_error,completed) VALUES (?,?,?,?,?,?,?)""",
+                """INSERT INTO tasks(
+                    id,
+                    filename,
+                    debrid_status,
+                    debrid_dl_progress,
+                    attemptstogetlink,
+                    debrid_error,
+                    completed)
+                    VALUES (?,?,?,?,?,?,?)""",
                 (
                     myid,
                     filename,
@@ -155,7 +210,15 @@ def realdebridtorrent(magnet):
         case "dead":
             debrid_status = "Link is Dead"
             cursor.execute(
-                """INSERT INTO tasks(id, filename, debrid_status, debrid_dl_progress, attemptstogetlink, debrid_error,completed) VALUES (?,?,?,?,?,?,?)""",
+                """INSERT INTO tasks(
+                    id,
+                    filename,
+                    debrid_status,
+                    debrid_dl_progress,
+                    attemptstogetlink,
+                    debrid_error,
+                    completed)
+                    VALUES (?,?,?,?,?,?,?)""",
                 (
                     myid,
                     filename,
@@ -192,7 +255,15 @@ def realdebridtorrent(magnet):
         completedtask = "No"
         debrid_error = "No error"
         cursor.execute(
-            """INSERT INTO tasks(id, filename, debrid_status, debrid_dl_progress, attemptstogetlink, debrid_error,completed) VALUES (?,?,?,?,?,?,?)""",
+            """INSERT INTO tasks(
+                id,
+                filename,
+                debrid_status,
+                debrid_dl_progress,
+                attemptstogetlink,
+                debrid_error,
+                completed)
+                VALUES (?,?,?,?,?,?,?)""",
             (
                 myid,
                 filename,
@@ -216,7 +287,15 @@ def realdebridtorrent(magnet):
         completedtask = "Yes"
         debrid_dl_progress = 100
         cursor.execute(
-            """INSERT INTO tasks(id, filename, debrid_status, attemptstogetlink, debrid_error,debrid_dl_progress,completed) VALUES (?,?,?,?,?,?,?)""",
+            """INSERT INTO tasks(
+                id,
+                filename,
+                debrid_status,
+                attemptstogetlink,
+                debrid_error,d
+                ebrid_dl_progress,
+                completed)
+                VALUES (?,?,?,?,?,?,?)""",
             (
                 myid,
                 filename,
@@ -248,7 +327,15 @@ def realdebridtorrent(magnet):
         time.sleep(1)
         debrid_status = "Sent to aria2"
         cursor.execute(
-            """INSERT INTO tasks(id, filename, debrid_status, attemptstogetlink, debrid_error,debrid_dl_progress,completed) VALUES (?,?,?,?,?,?,?)""",
+            """INSERT INTO tasks(
+                id,
+                filename,
+                debrid_status,
+                attemptstogetlink,
+                debrid_error,d
+                ebrid_dl_progress,
+                completed)
+                VALUES (?,?,?,?,?,?,?)""",
             (
                 myid,
                 filename,
@@ -276,7 +363,15 @@ def realdebridtorrent(magnet):
         debrid_error = "Max Time"
         completedtask = "No"
         cursor.execute(
-            """INSERT INTO tasks(id, filename, debrid_status, attemptstogetlink, debrid_error,debrid_dl_progress,completed) VALUES (?,?,?,?,?,?,?)""",
+            """INSERT INTO tasks(
+                id,
+                filename,
+                debrid_status,
+                attemptstogetlink,
+                debrid_error,d
+                ebrid_dl_progress,
+                completed)
+                VALUES (?,?,?,?,?,?,?)""",
             (
                 myid,
                 filename,
@@ -321,7 +416,14 @@ def alldebridtorrent(magnet):
 
     try:
         cursor.execute(
-            """INSERT INTO tasks(id, filename, debrid_status, attemptstogetlink, debrid_error, completed) VALUES (?,?,?,?,?,?)""",
+            """INSERT INTO tasks(
+                id,
+                filename,
+                debrid_status,
+                attemptstogetlink,
+                debrid_error,
+                completed)
+                VALUES (?,?,?,?,?,?)""",
             (
                 myid,
                 filename,
@@ -381,7 +483,15 @@ def alldebridtorrent(magnet):
     if error_response:  # Update database in case of an error
         try:
             cursor.execute(
-                """INSERT INTO tasks(id, filename, debrid_status, debrid_dl_progress, attemptstogetlink, debrid_error, completed) VALUES (?,?,?,?,?,?,?)""",
+                """INSERT INTO tasks(
+                    id,
+                    filename,
+                    debrid_status,
+                    debrid_dl_progress,
+                    attemptstogetlink,
+                    debrid_error,
+                    completed)
+                    VALUES (?,?,?,?,?,?,?)""",
                 (
                     myid,
                     filename,
@@ -432,7 +542,15 @@ def alldebridtorrent(magnet):
 
         try:
             cursor.execute(
-                """INSERT INTO tasks(id, filename, debrid_status, debrid_dl_progress, attemptstogetlink, debrid_error, completed) VALUES (?,?,?,?,?,?,?)""",
+                """INSERT INTO tasks(
+                    id,
+                    filename,
+                    debrid_status,
+                    debrid_dl_progress,
+                    attemptstogetlink,
+                    debrid_error,
+                    completed)
+                    VALUES (?,?,?,?,?,?,?)""",
                 (
                     myid,
                     filename,
@@ -464,7 +582,15 @@ def alldebridtorrent(magnet):
 
         try:
             cursor.execute(
-                """INSERT INTO tasks(id, filename, debrid_status, attemptstogetlink, debrid_error, debrid_dl_progress, completed) VALUES (?,?,?,?,?,?,?)""",
+                """INSERT INTO tasks(
+                    id,
+                    filename,
+                    debrid_status,
+                    attemptstogetlink,
+                    debrid_error,
+                    debrid_dl_progress,
+                    completed)
+                    VALUES (?,?,?,?,?,?,?)""",
                 (
                     myid,
                     filename,
@@ -503,7 +629,15 @@ def alldebridtorrent(magnet):
         time.sleep(1)
         debrid_status = "Sent to aria2"
         cursor.execute(
-            """INSERT INTO tasks(id, filename, debrid_status, attemptstogetlink, debrid_error,debrid_dl_progress,completed) VALUES (?,?,?,?,?,?,?)""",
+            """INSERT INTO tasks(
+                id,
+                filename,
+                debrid_status,
+                attemptstogetlink,
+                debrid_error,
+                debrid_dl_progress,
+                completed)
+                VALUES (?,?,?,?,?,?,?)""",
             (
                 myid,
                 filename,
@@ -537,7 +671,15 @@ def alldebridtorrent(magnet):
 
         try:
             cursor.execute(
-                """INSERT INTO tasks(id, filename, debrid_status, attemptstogetlink, debrid_error, debrid_dl_progress, completed) VALUES (?,?,?,?,?,?,?)""",
+                """INSERT INTO tasks(
+                    id,
+                    filename,
+                    debrid_status,
+                    attemptstogetlink,
+                    debrid_error,
+                    debrid_dl_progress,
+                    completed)
+                    VALUES (?,?,?,?,?,?,?)""",
                 (
                     myid,
                     filename,

@@ -1,9 +1,7 @@
 #!/usr/bin/env python3
 
-from logging import log
 import os
 import pathlib
-import urllib
 import sqlite3 as sql
 import subprocess
 
@@ -90,10 +88,26 @@ def list():
                 connection = sql.connect(databaseinfo, timeout=20)
                 cursor = connection.cursor()
                 cursor.execute(
-                    "CREATE TABLE IF NOT EXISTS webuiview (id TEXT, filename TEXT, debrid_status TEXT, debrid_dl_progress INTEGER, attemptstogetlink INTEGER, debrid_error TEXT, completed INTEGER , Timestamp DATETIME DEFAULT CURRENT_TIMESTAMP )"
+                    """CREATE TABLE IF NOT EXISTS webuiview(
+                        id TEXT,
+                        filename TEXT,
+                        debrid_status TEXT,
+                        debrid_dl_progress INTEGER,
+                        attemptstogetlink INTEGER,
+                        debrid_error TEXT,
+                        completed INTEGER ,
+                        Timestamp DATETIME DEFAULT CURRENT_TIMESTAMP )"""
                 )
                 cursor.execute(
-                    """INSERT INTO webuiview(id, filename, debrid_status, debrid_dl_progress, attemptstogetlink, debrid_error, completed) VALUES (?,?,?,?,?,?,?)""",
+                    """INSERT INTO webuiview(
+                        id,
+                        filename,
+                        debrid_status,
+                        debrid_dl_progress,
+                        attemptstogetlink,
+                        debrid_error,
+                        completed)
+                        VALUES (?,?,?,?,?,?,?)""",
                     (
                         myid,
                         name,
@@ -174,22 +188,31 @@ def deletecompleted():
 @basic_auth.required
 def settings():
     if request.method == "GET":
-        con = sql.connect(databaseinfo, timeout=20)
-        con.row_factory = sql.Row
-        cur = con.cursor()
+        connection = sql.connect(databaseinfo, timeout=20)
+        connection.row_factory = sql.Row
+        cursor = connection.cursor()
 
         # Check if settings table exists in database
-        cur.execute(
+        cursor.execute(
             "select count(*) from sqlite_master where type='table' and name='settings'"
         )
-        result = cur.fetchall()
+        result = cursor.fetchall()
         table_exists = result[0][0]
 
         if not table_exists:
-            cur.execute(
-                "CREATE TABLE IF NOT EXISTS settings (id INTEGER,waitbetween INTEGER, maxattempts INTEGER, aria2host TEXT, aria2secret TEXT, realdebrid_apikey TEXT, alldebrid_apikey TEXT, username TEXT, password TEXT)"
+            cursor.execute(
+                """CREATE TABLE IF NOT EXISTS settings (
+                    id INTEGER,
+                    waitbetween INTEGER,
+                    maxattempts INTEGER,
+                    aria2host TEXT,
+                    aria2secret TEXT,
+                    realdebrid_apikey TEXT,
+                    alldebrid_apikey TEXT,
+                    username TEXT,
+                    password TEXT)"""
             )
-            con.commit()
+            connection.commit()
             id = 1
             waitbetween = 300
             maxattempts = 10
@@ -199,7 +222,7 @@ def settings():
             realdebrid_apikey = "realdebrid_apikey"
             username = "admin"
             password = "admin"
-            cur.execute(
+            cursor.execute(
                 """INSERT INTO settings(
                     id,
                     waitbetween,
@@ -223,8 +246,8 @@ def settings():
                     password,
                 ),
             )
-            con.commit()
-            mylist = [
+            connection.commit()
+            settings_list = [
                 waitbetween,
                 maxattempts,
                 aria2host,
@@ -234,16 +257,14 @@ def settings():
                 username,
                 password,
             ]
-            return render_template("settings.html", list1=mylist)
+            return render_template("settings.html", list1=settings_list)
         else:
-            con = sql.connect(databaseinfo, timeout=20)
-            con.row_factory = sql.Row
-            cur = con.cursor()
-            id = 1
-            cur.execute("SELECT * FROM settings where id=?", (id,))
-            rows = cur.fetchall()
-            print(rows)
-            mylist = [
+            connection = sql.connect(databaseinfo, timeout=20)
+            connection.row_factory = sql.Row
+            cursor = connection.cursor()
+            cursor.execute("SELECT * FROM settings where id=1")
+            rows = cursor.fetchall()
+            settings_list = [
                 rows[0][1],
                 rows[0][2],
                 rows[0][3],
@@ -253,12 +274,12 @@ def settings():
                 rows[0][7],
                 rows[0][8],
             ]
-            return render_template("settings.html", list1=mylist)
+            return render_template("settings.html", list1=settings_list)
 
     elif request.method == "POST":
-        con = sql.connect(databaseinfo)
-        con.row_factory = sql.Row
-        cur = con.cursor()
+        connection = sql.connect(databaseinfo)
+        connection.row_factory = sql.Row
+        cursor = connection.cursor()
         waitbetween = request.form["waitbetween"]
         maxattempts = request.form["maxattempts"]
         aria2host = request.form["aria2host"]
@@ -267,8 +288,17 @@ def settings():
         alldebrid_apikey = request.form["alldebrid_apikey"]
         username = request.form["username"]
         password = request.form["password"]
-        cur.execute(
-            """UPDATE settings SET waitbetween = ?, maxattempts=?, aria2host=?, aria2secret=?, realdebrid_apikey=?, alldebrid_apikey=?, username=?, password=? WHERE id = 1""",
+        cursor.execute(
+            """UPDATE settings SET
+                waitbetween = ?,
+                maxattempts=?,
+                aria2host=?,
+                aria2secret=?,
+                realdebrid_apikey=?,
+                alldebrid_apikey=?,
+                username=?,
+                password=?
+                WHERE id = 1""",
             (
                 waitbetween,
                 maxattempts,
@@ -280,8 +310,8 @@ def settings():
                 password,
             ),
         )
-        con.commit()
-        mylist = [
+        connection.commit()
+        settings_list = [
             waitbetween,
             maxattempts,
             aria2host,
@@ -291,7 +321,7 @@ def settings():
             username,
             password,
         ]
-        return render_template("settingssuccess.html", list1=mylist)
+        return render_template("settingssuccess.html", list1=settings_list)
 
 
 if __name__ == "__main__":
