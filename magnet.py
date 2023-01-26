@@ -4,6 +4,7 @@ import os
 import aria2p
 import sqlite3
 import random
+import json
 
 databaseinfo = str(os.getenv("dbinfo"))
 connection = sqlite3.connect(databaseinfo, timeout=20)
@@ -25,6 +26,7 @@ result = cursor.fetchall()
 waitbetween = result[0][1]
 maxattempts = result[0][2]
 aria2host = result[0][3]
+aria2host = "http://" + aria2host
 secretkey = result[0][4]
 realdebrid_apikey = result[0][5]
 alldebrid_apikey = result[0][6]
@@ -50,7 +52,7 @@ def realdebridtorrent(magnet):
     magnetaddjson = {"magnet": magnet}
     response = requests.post(addmagneturl, data=magnetaddjson)
     debrid_response = response.json()
-    myid = debrid_response["id"]
+    magnet_id = debrid_response["id"]
     head, tail = os.path.split(magnet)
     filename = tail
     debrid_status = "Submitted to RealDebrid"
@@ -67,7 +69,7 @@ def realdebridtorrent(magnet):
             completed)
             VALUES (?,?,?,?,?,?)""",
         (
-            myid,
+            magnet_id,
             filename,
             debrid_status,
             attemptstogetlink,
@@ -80,7 +82,7 @@ def realdebridtorrent(magnet):
     time.sleep(2)
     selectfiles = (
         "https://api.real-debrid.com/rest/1.0/torrents/selectFiles/"
-        + myid
+        + magnet_id
         + "?auth_token="
         + realdebrid_apikey
     )
@@ -89,7 +91,7 @@ def realdebridtorrent(magnet):
 
     selecttorrentinfo = (
         "https://api.real-debrid.com/rest/1.0/torrents/info/"
-        + myid
+        + magnet_id
         + "?auth_token="
         + realdebrid_apikey
     )
@@ -104,8 +106,7 @@ def realdebridtorrent(magnet):
             completed = 0
         case "magnet_error":
             debrid_status = "Magnet Error"
-            cursor.execute(
-                """INSERT INTO tasks(
+            cursor.execute( """INSERT INTO tasks(
                     id,
                     filename,
                     debrid_status,
@@ -115,7 +116,7 @@ def realdebridtorrent(magnet):
                     completed)
                     VALUES (?,?,?,?,?,?,?)""",
                 (
-                    myid,
+                    magnet_id,
                     filename,
                     debrid_status,
                     debrid_dl_progress,
@@ -142,7 +143,7 @@ def realdebridtorrent(magnet):
                     completed)
                     VALUES (?,?,?,?,?,?,?)""",
                 (
-                    myid,
+                    magnet_id,
                     filename,
                     debrid_status,
                     debrid_dl_progress,
@@ -168,7 +169,7 @@ def realdebridtorrent(magnet):
                     completed)
                     VALUES (?,?,?,?,?,?,?)""",
                 (
-                    myid,
+                    magnet_id,
                     filename,
                     debrid_status,
                     debrid_dl_progress,
@@ -194,7 +195,7 @@ def realdebridtorrent(magnet):
                     completed)
                     VALUES (?,?,?,?,?,?,?)""",
                 (
-                    myid,
+                    magnet_id,
                     filename,
                     debrid_status,
                     debrid_dl_progress,
@@ -220,7 +221,7 @@ def realdebridtorrent(magnet):
                     completed)
                     VALUES (?,?,?,?,?,?,?)""",
                 (
-                    myid,
+                    magnet_id,
                     filename,
                     debrid_status,
                     debrid_dl_progress,
@@ -239,7 +240,7 @@ def realdebridtorrent(magnet):
     while completed == 0:
         selecttorrentinfo = (
             "https://api.real-debrid.com/rest/1.0/torrents/info/"
-            + myid
+            + magnet_id
             + "?auth_token="
             + realdebrid_apikey
         )
@@ -265,7 +266,7 @@ def realdebridtorrent(magnet):
                 completed)
                 VALUES (?,?,?,?,?,?,?)""",
             (
-                myid,
+                magnet_id,
                 filename,
                 debrid_status,
                 debrid_dl_progress,
@@ -297,7 +298,7 @@ def realdebridtorrent(magnet):
                 completed)
                 VALUES (?,?,?,?,?,?,?)""",
             (
-                myid,
+                magnet_id,
                 filename,
                 debrid_status,
                 attemptstogetlink,
@@ -321,7 +322,8 @@ def realdebridtorrent(magnet):
             mylink = debrid_response["download"]
             try:
                 download = aria2.add(mylink)
-            except:
+            except Exception as e:
+                print(e)
                 print("Error Connecting To Your ARIA2 Instance")
         moveprocessed(magnet, error)
         time.sleep(1)
@@ -337,7 +339,7 @@ def realdebridtorrent(magnet):
                 completed)
                 VALUES (?,?,?,?,?,?,?)""",
             (
-                myid,
+                magnet_id,
                 filename,
                 debrid_status,
                 attemptstogetlink,
@@ -352,7 +354,7 @@ def realdebridtorrent(magnet):
         time.sleep(1)
         deletetorrentfromdebrid = (
             "https://api.real-debrid.com/rest/1.0/torrents/delete/"
-            + myid
+            + magnet_id
             + "?auth_token="
             + realdebrid_apikey
         )
@@ -373,7 +375,7 @@ def realdebridtorrent(magnet):
                 completed)
                 VALUES (?,?,?,?,?,?,?)""",
             (
-                myid,
+                magnet_id,
                 filename,
                 debrid_status,
                 attemptstogetlink,
@@ -400,16 +402,20 @@ def alldebridtorrent(magnet):
 
     # Send magnet link to AllDebrid
     try:
+        print("Uploading magnet to AllDebrid")
         response = requests.post(
             "https://api.alldebrid.com/v4/magnet/upload?agent=Debridmanager&apikey="
             + alldebrid_apikey,
             data={"magnet": magnet},
         ).json()
-    except:
-        print("Couldn't communicate with AllDebrid")
+    except Exception as e:
+        print(e)
+        print("Couldn't upload magnet to AllDebrid. Plese check your api keys!")
         return
 
-    myid = response["id"]
+    magnet_id = response["data"]["magnets"][0]["id"]
+    magnet_name = response["data"]["magnets"][0]["name"]
+    print("Magnet ID: " + str(magnet_id))
     head, tail = os.path.split(magnet)
     filename = tail
     debrid_status = "Submitted to AllDebrid"
@@ -425,7 +431,7 @@ def alldebridtorrent(magnet):
                 completed)
                 VALUES (?,?,?,?,?,?)""",
             (
-                myid,
+                magnet_id,
                 filename,
                 debrid_status,
                 attemptstogetlink,
@@ -434,27 +440,40 @@ def alldebridtorrent(magnet):
             ),
         )
         connection.commit()
-    except:
+    except Exception as e:
+        print(e)
         print("Couldn't update database")
         return
 
     time.sleep(2)
 
-    # Query download status from AllDebrid
+    # Get download status from AllDebrid
     try:
+        print("Getting status of " + magnet_name)
         response = requests.get(
             "https://api.alldebrid.com/v4/magnet/status?agent=Debridmanager&apikey="
-            + alldebrid_apikey,
-            data={"id": myid},
-        ).json()
-    except:
-        print("Couldn't communicate with AllDebrid")
+            + alldebrid_apikey
+            + "&id=" + str(magnet_id)).json()
+    except Exception as e:
+        print(e)
+        print("Couldn't get magnet status from AllDebrid")
         return
 
-    match response["statusCode"]:
-        case 0:  # In queue
+    match response["data"]["magnets"]["statusCode"]:
+        case 0:
+            debrid_status = "In queue"
             completed = False
-        case 4:  # Ready
+        case 1:
+            debrid_status = "Downloading"
+            completed = False
+        case 2:
+            debrid_status = "Compressing/Moving"
+            completed = False
+        case 3:
+            debrid_status = "Uploading"
+            completed = False
+        case 4:
+            debrid_status = "Ready"
             completed = True
         case 5:
             debrid_status = "Upload failure"
@@ -493,7 +512,7 @@ def alldebridtorrent(magnet):
                     completed)
                     VALUES (?,?,?,?,?,?,?)""",
                 (
-                    myid,
+                    magnet_id,
                     filename,
                     debrid_status,
                     debrid_dl_progress,
@@ -507,9 +526,12 @@ def alldebridtorrent(magnet):
             error = 1
             moveprocessed(magnet, error)
             return
-        except:
+        except Exception as e:
+            print(e)
             print("Couldn't update database")
             return
+
+    print("Debrid status: " + debrid_status)
 
     """
     If the download is not instantly available, monitor the download status
@@ -519,24 +541,27 @@ def alldebridtorrent(magnet):
     """
     session_id = random.randint(0, 1000)
 
-    while not completed or not attempt_limit_reached:
+    while not completed:
         try:
             response = requests.get(
                 "https://api.alldebrid.com/v4/magnet/status?agent=Debridmanager&apikey="
                 + alldebrid_apikey
                 + "&session="
-                + session_id
+                + str(session_id)
                 + "&counter="
-                + attemptstogetlink,
-                data={"id": myid},
+                + str(attemptstogetlink),
+                data={"id": str(magnet_id)},
             ).json()
-        except:
-            print("Couldn't communicate with AllDebrid")
+        except Exception as e:
+            print(json.dumps(response, indent=4))
+            print(e)
+            print("Couldn't get magnet livemode status from AllDebrid")
             return
 
         debrid_status = "Downloading"
         attemptstogetlink += 1
-        debrid_dl_progress = int(response["downloaded"] / response["size"] * 100)
+        if response["data"]["magnets"][0]["size"] != 0:
+            debrid_dl_progress = int(response["data"]["magnets"][0]["downloaded"] / response["data"]["magnets"][0]["size"] * 100)
         completedtask = "No"
         debrid_error = "No error"
 
@@ -552,7 +577,7 @@ def alldebridtorrent(magnet):
                     completed)
                     VALUES (?,?,?,?,?,?,?)""",
                 (
-                    myid,
+                    magnet_id,
                     filename,
                     debrid_status,
                     debrid_dl_progress,
@@ -562,7 +587,8 @@ def alldebridtorrent(magnet):
                 ),
             )
             connection.commit()
-        except:
+        except Exception as e:
+            print(e)
             print("Couldn't update database")
             return
 
@@ -571,10 +597,11 @@ def alldebridtorrent(magnet):
         else:
             time.sleep(waitbetween)
 
-        if response["statusCode"] == 4:  # Ready
+        if response["data"]["magnets"][0]["statusCode"] == 4:  # Ready
             completed = True
 
     if completed:
+        print(magnet_name + " is complete")
         debrid_status = "Downloaded to AllDebrid"
         debrid_error = "none"
         completedtask = "Yes"
@@ -592,7 +619,7 @@ def alldebridtorrent(magnet):
                     completed)
                     VALUES (?,?,?,?,?,?,?)""",
                 (
-                    myid,
+                    magnet_id,
                     filename,
                     debrid_status,
                     attemptstogetlink,
@@ -602,28 +629,34 @@ def alldebridtorrent(magnet):
                 ),
             )
             connection.commit()
-        except:
+        except Exception as e:
+            print(e)
             print("Couldn't update database")
             return
 
         aria2 = aria2p.API(aria2p.Client(host=aria2host, port=6800, secret=secretkey))
         error = 0
 
-        for link in response["links"]:
+        for link in response["data"]["magnets"]["links"]:
             try:
                 response = requests.post(
                     "https://api.alldebrid.com/v4/link/unlock?agent=Debridmanager&apikey="
                     + alldebrid_apikey,
-                    data={"link": link},
+                    data={"link": link["link"]},
                 ).json()
-            except:
-                print("Couldn't communicate with AllDebrid")
+            except Exception as e:
+                print(json.dumps(response, indent=4))
+                print(e)
+                print("Couldn't unlock links from AllDebrid")
                 return
 
+            download_link = response["data"]["link"]
             try:
-                aria2.add(response["link"])
-            except:
-                print("Error Connecting To Your ARIA2 Instance")
+                aria2.add(download_link)
+            except Exception as e:
+                print(download_link)
+                print(e)
+                print("Error connecting to aria2 instance")
 
         moveprocessed(magnet, error)
         time.sleep(1)
@@ -639,7 +672,7 @@ def alldebridtorrent(magnet):
                 completed)
                 VALUES (?,?,?,?,?,?,?)""",
             (
-                myid,
+                magnet_id,
                 filename,
                 debrid_status,
                 attemptstogetlink,
@@ -658,10 +691,11 @@ def alldebridtorrent(magnet):
             response = requests.delete(
                 "https://api.alldebrid.com/v4/link/delete?agent=Debridmanager&apikey="
                 + alldebrid_apikey,
-                data={"id": myid},
+                data={"id": magnet_id},
             ).json()
-        except:
-            print("Couldn't communicate with AllDebrid")
+        except Exception as e:
+            print(e)
+            print("Couldn't delete magnet from AllDebrid")
             return
 
         error = 1
@@ -681,7 +715,7 @@ def alldebridtorrent(magnet):
                     completed)
                     VALUES (?,?,?,?,?,?,?)""",
                 (
-                    myid,
+                    magnet_id,
                     filename,
                     debrid_status,
                     attemptstogetlink,
@@ -691,7 +725,8 @@ def alldebridtorrent(magnet):
                 ),
             )
             connection.commit()
-        except:
+        except Exception as e:
+            print(e)
             print("Couldn't update database")
             return
 
@@ -701,7 +736,7 @@ def alldebridtorrent(magnet):
 import sys
 
 originalmagnet = sys.argv[1]
-print("Starting script on received magnet link")
+print("Starting to process magnet link")
 with open(originalmagnet, "r") as f:
     magnetlink = f.readlines()
 magnetlink = magnetlink[0]

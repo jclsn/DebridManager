@@ -216,10 +216,10 @@ def settings():
             id = 1
             waitbetween = 300
             maxattempts = 10
-            aria2host = "localhost"
-            aria2secret = "aria2secret"
-            alldebrid_apikey = "alldebrid_apikey"
-            realdebrid_apikey = "realdebrid_apikey"
+            aria2host = "127.0.0.1"
+            aria2secret = ""
+            alldebrid_apikey = ""
+            realdebrid_apikey = ""
             username = "admin"
             password = "admin"
             cursor.execute(
